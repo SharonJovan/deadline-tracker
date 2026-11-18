@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ PulseDeadline - Ultimate Tracker</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        h1 { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+        .reward-badge {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #ffd700;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+        }
+        input, select {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 14px;
+        }
+        button.add-btn {
+            background: #4ade80;
+            color: #065f46;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button.add-btn:hover { background: #22c55e; color: #fff; }
+        .task-list { display: flex; flex-direction: column; gap: 12px; max-height: 350px; overflow-y: auto; padding-right: 5px; }
+        .task-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid #38bdf8;
+            transition: 0.3s;
+        }
+        .task-card.Urgent { border-left-color: #f87171; }
+        .task-card.Creative { border-left-color: #c084fc; }
+        .task-card.Gaming { border-left-color: #fbbf24; }
+        .task-info h3 { font-size: 16px; margin-bottom: 4px; }
+        .task-info p { font-size: 12px; opacity: 0.8; }
+        .task-actions { display: flex; gap: 8px; align-items: center; }
+        .complete-btn {
+            background: none;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .complete-btn:hover { background: #fff; color: #333; }
+        .delete-btn { background: none; border: none; color: #f87171; cursor: pointer; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>⚡ PulseDeadline</h1>
+            <div class="reward-badge" id="scoreBadge">🏆 XP: 0</div>
+        </header>
+
+        <div class="form-group">
+            <input type="text" id="taskTitle" placeholder="What is your deadline or activity?">
+            <input type="datetime-local" id="taskDate">
+            <select id="taskCategory">
+                <option value="Urgent">🔥 Urgent</option>
+                <option value="Creative">💡 Creative</option>
+                <option value="Gaming">🎮 Gaming / Fun</option>
+                <option value="Studies">📚 Studies / Work</option>
+            </select>
+            <button class="add-btn" onclick="addTask()">+ Add Deadline & Reward</button>
+        </div>
+
+        <div class="task-list" id="taskList">
+            <!-- Tasks load here -->
+        </div>
+    </div>
+
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('pulse_tasks')) || [];
+        let xp = parseInt(localStorage.getItem('pulse_xp')) || 0;
+        document.getElementById('scoreBadge').innerText = `🏆 XP: ${xp}`;
+
+        function saveAndRender() {
+            localStorage.setItem('pulse_tasks', JSON.stringify(tasks));
+            localStorage.setItem('pulse_xp', xp);
+            document.getElementById('scoreBadge').innerText = `🏆 XP: ${xp}`;
+            
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            
+            if (tasks.length === 0) {
+                list.innerHTML = `<p style="text-align:center; opacity:0.6; padding: 20px;">No active deadlines! Add one above 🚀</p>`;
+                return;
+            }
+
+            tasks.forEach((task, index) => {
+                const card = document.createElement('div');
+                card.className = `task-card ${task.category}`;
+                card.innerHTML = `
+                    <div class="task-info">
+                        <h3>${task.title}</h3>
+                        <p>Category: ${task.category} | Due: ${new Date(task.date).toLocaleString()}</p>
+                    </div>
+                    <div class="task-actions">
+                        <button class="complete-btn" onclick="completeTask(${index})">Done ✓</button>
+                        <button class="delete-btn" onclick="deleteTask(${index})">🗑️</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function addTask() {
+            const title = document.getElementById('taskTitle').value;
+            const date = document.getElementById('taskDate').value;
+            const category = document.getElementById('taskCategory').value;
+
+            if (!title || !date) {
+                alert('Please fill in both the title and deadline date!');
+                return;
+            }
+
+            tasks.push({ title, date, category });
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskDate').value = '';
+            saveAndRender();
+        }
+
+        function completeTask(index) {
+            tasks.splice(index, 1);
+            xp += 100; // Reward XP!
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            saveAndRender();
+        }
+
+        function deleteTask(index) {
+            tasks.splice(index, 1);
+            saveAndRender();
+        }
+
+        saveAndRender();
+    </script>
+</body>
+</html>
